@@ -34,7 +34,6 @@ ONBOARDING_SCHEDULE_HTML = r'''<!DOCTYPE html>
 <title>후임자 온보딩 일정 설계</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
   :root{
     --ink:#161A1F; --paper:#F4F7FB; --surface:#FFFFFF;
@@ -53,7 +52,7 @@ ONBOARDING_SCHEDULE_HTML = r'''<!DOCTYPE html>
   header .mark{width:34px;height:34px;border-radius:8px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;font-family:'Space Grotesk',sans-serif;margin-right:10px;vertical-align:middle;}
   header h1{font-size:18px;margin:0;font-weight:700;display:inline;vertical-align:middle;}
   header p{margin:6px 0 0;font-size:12.5px;color:var(--muted);}
-  .layout{display:grid; grid-template-columns:320px 1fr; gap:20px; padding:24px; max-width:1360px; margin:0 auto; align-items:start;}
+  .layout{display:grid; grid-template-columns:1fr; gap:20px; padding:24px; max-width:1360px; margin:0 auto; align-items:start;}
   @media (max-width:980px){ .layout{grid-template-columns:1fr;} }
   .panel{background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow);}
   .panel-head{padding:16px 18px 12px; border-bottom:1px solid var(--line);}
@@ -137,56 +136,13 @@ ONBOARDING_SCHEDULE_HTML = r'''<!DOCTYPE html>
 
 <div class="layout">
 
-  <!-- LEFT -->
-  <div class="panel">
-    <div class="panel-head"><h2>문서</h2></div>
-    <div class="panel-body">
-
-      <div id="aiDocNote" class="ai-note" style="display:none;"></div>
-
-      <div id="manualUpload">
-        <div class="source-block">
-          <div class="source-label">회의록 <span class="req">(여러 개, docx)</span></div>
-          <div class="dropzone" data-target="meeting">
-            <div class="dz-title">파일 업로드</div>
-            <div class="dz-sub">.docx (여러 개 선택 가능)</div>
-          </div>
-          <input type="file" class="fileInput" data-target="meeting" accept=".docx" multiple>
-          <div class="file-list" id="fileList-meeting"></div>
-        </div>
-
-        <div class="source-block">
-          <div class="source-label">캘린더 문서 <span class="req">(06_인수인계_캘린더.docx)</span></div>
-          <div class="dropzone" data-target="calendar">
-            <div class="dz-title">파일 업로드</div>
-            <div class="dz-sub">.docx</div>
-          </div>
-          <input type="file" class="fileInput" data-target="calendar" accept=".docx">
-          <div class="file-list" id="fileList-calendar"></div>
-        </div>
-
-        <div class="source-block">
-          <div class="source-label">메일 <span class="req">(여러 개, 참고용 표시)</span></div>
-          <div class="dropzone" data-target="email">
-            <div class="dz-title">파일 업로드</div>
-            <div class="dz-sub">.docx (여러 개 선택 가능)</div>
-          </div>
-          <input type="file" class="fileInput" data-target="email" accept=".docx" multiple>
-          <div class="file-list" id="fileList-email"></div>
-        </div>
-      </div>
-
-      <div class="row-btns">
-        <button class="btn btn-primary btn-block" id="genBtn">일정표 생성</button>
-      </div>
-      <p class="hint">업무일정·프로젝트 현황·자산·연락망 내용은 도구 안에 이미 반영되어 있어서 따로 업로드하지 않아도 됩니다.</p>
-    </div>
-  </div>
-
   <!-- RIGHT -->
   <div class="panel">
     <div class="panel-head"><h2>1주차 · 2주차 일과표</h2></div>
     <div class="panel-body">
+
+      <div id="aiDocNote" class="ai-note" style="display:none;"></div>
+      <p class="hint" style="margin-top:0;">올린 업무자료와 문서만으로 만들어집니다. 내용이 없는 칸은 여유 시간으로 비워둡니다.</p>
 
       <div class="legend">
         <span><span class="sw event"></span>회의록/캘린더의 고정 시간 일정</span>
@@ -208,7 +164,7 @@ ONBOARDING_SCHEDULE_HTML = r'''<!DOCTYPE html>
       </div>
 
       <div id="gridArea">
-        <div class="empty-msg">"일정표 생성"을 눌러보세요.</div>
+        <div class="empty-msg">일정표를 만드는 중...</div>
       </div>
 
       <div id="overflowArea"></div>
@@ -232,8 +188,6 @@ const AI_TIMED_EVENTS = [];
 const AI_ALLDAY_TASKS = [];
 const AI_MAIL_REFS = [];
 
-let files = { meeting:[], calendar:[], email:[] };
-let fileIdCounter = 0;
 
 let originalWeeks = null; // parsed, immutable
 let workingWeeks = null;  // editable copy
@@ -248,62 +202,11 @@ function showError(msg){ el('errorBox').style.display='block'; el('errorBox').te
 function clearError(){ el('errorBox').style.display='none'; }
 
 if(AI_DOC_MODE){
-  el('manualUpload').style.display = 'none';
   const note = el('aiDocNote');
   note.style.display = 'block';
   note.innerHTML = `🤖 <b>AI가 분석한 문서가 반영됩니다.</b><br>시간 일정 ${AI_TIMED_EVENTS.length}건 · 마감/조치 ${AI_ALLDAY_TASKS.length}건 · 메일 ${AI_MAIL_REFS.length}건`
     + (AI_START_DATE ? `<br>인수 시작일(1주차 기준): <b>${escapeHtml(AI_START_DATE)}</b>` : '');
 }
-
-/* ---------------- 파일 업로드 UI (AI 미사용 시) ---------------- */
-
-function renderFileList(target){
-  const wrap = el('fileList-'+target);
-  wrap.innerHTML = '';
-  files[target].forEach(d=>{
-    const row = document.createElement('div');
-    row.className = 'file-item';
-    const statusText = d.status === 'loading' ? '읽는 중…' : d.status === 'ok' ? '완료' : '실패';
-    const statusClass = d.status === 'ok' ? 'ok' : d.status === 'err' ? 'err' : '';
-    row.innerHTML = `<span class="fname">${escapeHtml(d.name)}</span><span class="fstatus ${statusClass}">${statusText}</span><span class="fremove" data-id="${d.id}">✕</span>`;
-    row.querySelector('.fremove').onclick = () => {
-      files[target] = files[target].filter(x => x.id !== d.id);
-      renderFileList(target);
-    };
-    wrap.appendChild(row);
-  });
-}
-
-async function handleFiles(target, fileListRaw, single){
-  const arr = Array.from(fileListRaw);
-  if(single){ files[target] = []; }
-  for(const file of arr){
-    const doc = { id: ++fileIdCounter, name: file.name, status: 'loading', raw:null };
-    files[target].push(doc);
-    renderFileList(target);
-    try{
-      const buf = await file.arrayBuffer();
-      const res = await mammoth.extractRawText({ arrayBuffer: buf });
-      doc.raw = res.value;
-      doc.status = 'ok';
-    }catch(err){
-      doc.status = 'err';
-      showError(`${file.name} 처리 실패: ${err.message}`);
-    }
-    renderFileList(target);
-  }
-}
-
-document.querySelectorAll('.dropzone').forEach(dz=>{
-  const target = dz.dataset.target;
-  const input = document.querySelector(`.fileInput[data-target="${target}"]`);
-  const single = !input.multiple;
-  dz.addEventListener('click', ()=> input.click());
-  input.addEventListener('change', e=>{ handleFiles(target, e.target.files, single); input.value=''; });
-  ['dragenter','dragover'].forEach(evt=> dz.addEventListener(evt, e=>{ e.preventDefault(); dz.classList.add('drag'); }));
-  ['dragleave','drop'].forEach(evt=> dz.addEventListener(evt, e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
-  dz.addEventListener('drop', e=>{ if(e.dataTransfer.files.length) handleFiles(target, e.dataTransfer.files, single); });
-});
 
 document.querySelectorAll('.role-chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
@@ -364,109 +267,14 @@ function addDays(dateStr, n){
   return ymd(d);
 }
 
-/* ---------------- 내장 데이터 (Excel 업로드 시 Python이 교체) ---------------- */
+/* ---------------- 업로드 자료 (Python이 값을 주입, 기본은 비어 있음) ---------------- */
 
-const EMBEDDED_SCHEDULE_TASKS = [
-  { date:"2026-09-01", title:"최종 점검보고서 제출", priority:"긴급", nextAction:"누락 사진 3장 확인 → 팀장 검토 → 고객사 제출", note:"오전 중 제출 권장", source:"업무일정 엑셀" },
-  { date:"2026-09-02", title:"감지기 교체 견적 회신", priority:"상", nextAction:"한빛전기 단가 회신 확인 후 견적서 최종 작성", note:"협력사 회신 대기", source:"업무일정 엑셀" },
-  { date:"2026-09-03", title:"고객사 정기회의 참석", priority:"상", nextAction:"회의 전 미조치 2건 및 사진자료 정리", note:"회의 14:00", source:"업무일정 엑셀" },
-  { date:"2026-09-04", title:"주간 미완료 업무 점검", priority:"중", nextAction:"미완료 보고서/견적/고객 요청 목록 업데이트", note:"매주 금요일 반복", source:"업무일정 엑셀" },
-  { date:"2026-09-07", title:"공용드라이브 권한 이관 요청", priority:"상", nextAction:"팀장 승인 후 이서연 계정에 편집권한 부여 요청", note:"외부공유 권한 제외", source:"업무일정 엑셀" },
-  { date:"2026-09-08", title:"월간 점검 일정 확정", priority:"중", nextAction:"현장팀 일정 취합 후 9월 점검표 확정", note:"현장팀 3명 일정 확인 필요", source:"업무일정 엑셀" },
-  { date:"2026-09-10", title:"D물류센터 사전자료 요청", priority:"중", nextAction:"도면/설비목록/이전 점검결과 요청 메일 발송", note:"신규 인계 후 첫 신규 현장", source:"업무일정 엑셀" },
-];
-
-const EMBEDDED_PROJECT_DEADLINE_TASKS = [
-  { date:"2026-09-01", title:"[마감] A동 소방시설 정기점검", priority:"상", nextAction:"누락 사진 3장 확인 후 최종 제출", note:"사진 누락 시 제출 지연 가능", source:"프로젝트 진행현황 엑셀" },
-  { date:"2026-09-02", title:"[마감] B공장 감지기 교체", priority:"상", nextAction:"협력사 단가 반영 후 견적 회신", note:"단가 지연 시 고객 회신 지연", source:"프로젝트 진행현황 엑셀" },
-  { date:"2026-09-03", title:"[마감] C센터 종합정밀점검", priority:"상", nextAction:"9/3 회의에서 미조치 2건 일정 확정", note:"미조치 2건 일정 미확정", source:"프로젝트 진행현황 엑셀" },
-  { date:"2026-09-10", title:"[마감] D물류센터 신규점검", priority:"상", nextAction:"사전자료 요청 및 현장 일정 협의", note:"자료 미수신 시 현장 준비 지연", source:"프로젝트 진행현황 엑셀" },
-];
-
-const EMBEDDED_ASSET_DEADLINE_TASKS = [
-  { date:"2026-09-07", title:"[마감] 공용드라이브 Z: 인계", priority:"상", nextAction:"팀장 승인 후 IT 요청", note:"외부 공유 권한은 부여하지 않음", source:"계정·권한·자산 엑셀" },
-  { date:"2026-09-04", title:"[마감] 고객요청 관리 엑셀 인계", priority:"상", nextAction:"최신 파일 경로 전달", note:"중복본 사용 금지", source:"계정·권한·자산 엑셀" },
-  { date:"2026-09-07", title:"[마감] A동 현장 폴더 인계", priority:"상", nextAction:"공용드라이브 권한과 함께 이관", note:"보고서 최종본 폴더 확인", source:"계정·권한·자산 엑셀" },
-  { date:"2026-09-04", title:"[마감] 법인 태블릿 2번 인계", priority:"상", nextAction:"자산대장 서명 후 인계", note:"충전기 포함", source:"계정·권한·자산 엑셀" },
-];
-
-const EMBEDDED_PROJECT_OVERVIEW = [
-  { title:"[개요] A동 소방시설 정기점검 현황 파악", detail:"보고서 최종화 · 진행률 80% · 다음액션: 누락 사진 3장 확인 후 최종 제출", badge:"개요", source:"프로젝트 진행현황 엑셀" },
-  { title:"[개요] B공장 감지기 교체 현황 파악", detail:"견적 작성 · 진행률 60% · 다음액션: 협력사 단가 반영 후 견적 회신", badge:"개요", source:"프로젝트 진행현황 엑셀" },
-  { title:"[개요] C센터 종합정밀점검 현황 파악", detail:"후속조치 협의 · 진행률 30% · 다음액션: 9/3 회의에서 미조치 2건 일정 확정", badge:"개요", source:"프로젝트 진행현황 엑셀" },
-  { title:"[개요] D물류센터 신규점검 현황 파악", detail:"사전준비 · 진행률 10% · 다음액션: 사전자료 요청 및 현장 일정 협의", badge:"개요", source:"프로젝트 진행현황 엑셀" },
-];
-
-const EMBEDDED_ASSET_OVERVIEW = [
-  { title:"[개요] 공용드라이브 Z: 인계 상태 확인", detail:"상태: 인계예정 · 인계방법: 팀장 승인 후 IT 요청 · 주의사항: 외부 공유 권한은 부여하지 않음", badge:"개요", source:"계정·권한·자산 엑셀" },
-  { title:"[개요] 고객요청 관리 엑셀 인계 상태 확인", detail:"상태: 미완료 · 인계방법: 최신 파일 경로 전달 · 주의사항: 중복본 사용 금지", badge:"개요", source:"계정·권한·자산 엑셀" },
-  { title:"[개요] 사내 IT요청 포털 인계 상태 확인", detail:"상태: 완료 · 인계방법: 개인 계정 직접 로그인 · 주의사항: 비밀번호 공유 금지", badge:"개요", source:"계정·권한·자산 엑셀" },
-  { title:"[개요] A동 현장 폴더 인계 상태 확인", detail:"상태: 인계예정 · 인계방법: 공용드라이브 권한과 함께 이관 · 주의사항: 보고서 최종본 폴더 확인", badge:"개요", source:"계정·권한·자산 엑셀" },
-  { title:"[개요] 법인 태블릿 2번 인계 상태 확인", detail:"상태: 미완료 · 인계방법: 자산대장 서명 후 인계 · 주의사항: 충전기 포함", badge:"개요", source:"계정·권한·자산 엑셀" },
-];
-
-const EMBEDDED_CONTACTS = [
-  { title:"박현우(부장, 세림관리) 컨택포인트 파악", detail:"관련 업무: A동 점검보고서 · 유의사항: 보고서 전달 전 전화로 먼저 안내. 오전 11시 이전 연락 선호.", badge:"소개", source:"담당자 연락망 엑셀" },
-  { title:"최은지(대리, B공장 시설팀) 컨택포인트 파악", detail:"관련 업무: B공장 견적/교체 일정 · 유의사항: 메일 제목에 [B공장] 표기. 견적 수정사항은 표로 정리.", badge:"소개", source:"담당자 연락망 엑셀" },
-  { title:"조민석(과장, 한빛전기) 컨택포인트 파악", detail:"관련 업무: 감지기 단가/납기 · 유의사항: 급한 건 전화, 일반 단가 문의는 문자 가능.", badge:"소개", source:"담당자 연락망 엑셀" },
-  { title:"오세훈(과장, C센터 시설팀) 컨택포인트 파악", detail:"관련 업무: C센터 후속조치 · 유의사항: 회의자료는 전날 17시까지 공유.", badge:"소개", source:"담당자 연락망 엑셀" },
-  { title:"박지훈(대리, 현장점검팀) 컨택포인트 파악", detail:"관련 업무: 현장 사진/점검결과 · 유의사항: 사진 누락 확인은 박지훈 대리에게 요청.", badge:"소개", source:"담당자 연락망 엑셀" },
-  { title:"한유리(사원, 영업팀) 컨택포인트 파악", detail:"관련 업무: 견적/고객 요청 · 유의사항: 견적 금액 변경 시 반드시 공유.", badge:"소개", source:"담당자 연락망 엑셀" },
-];
-
-/* ---------------- DOCX(텍스트) 파싱 — AI 미사용 시 예비 ---------------- */
-
-function splitLines(rawText){
-  return rawText.split('\n').map(s=>s.trim()).filter(Boolean);
-}
-
-function parseCalendarDocx(rawText){
-  const lines = splitLines(rawText);
-  let start = -1;
-  for(let i=0;i<lines.length-3;i++){
-    if(lines[i]==='날짜' && lines[i+1]==='시간' && lines[i+2]==='일정' && lines[i+3]==='내용'){ start = i+4; break; }
-  }
-  const events = [];
-  if(start<0) return events;
-  for(let i=start;i+3<lines.length;i+=4){
-    const [dateStr, timeStr, title, detail] = lines.slice(i,i+4);
-    const date = normalizeDate(dateStr);
-    if(!date) break;
-    const tm = timeStr.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
-    events.push({ date, start: tm ? tm[1] : null, end: tm ? tm[2] : null, allDay: !tm, title, detail, source: '캘린더 문서' });
-  }
-  return events;
-}
-
-function parseMeetingDocx(rawText, filename){
-  const lines = splitLines(rawText);
-  if(!lines.length) return null;
-  const title = lines[0];
-  let dtLine = null, place='', attendees='';
-  for(let i=0;i<lines.length;i++){
-    if(lines[i]==='일시' && lines[i+1]) dtLine = lines[i+1];
-    if(lines[i]==='장소' && lines[i+1]) place = lines[i+1];
-    if(lines[i]==='참석자' && lines[i+1]) attendees = lines[i+1];
-  }
-  if(!dtLine) return null;
-  const m = dtLine.match(/(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
-  if(!m) return null;
-  return { date: normalizeDate(m[1]), start: m[2], end: m[3], allDay:false, title,
-           detail: `참석: ${attendees}${place? ' · 장소: '+place : ''}`, source: '회의록 (' + filename + ')' };
-}
-
-function parseEmailDocx(rawText, filename){
-  const lines = splitLines(rawText);
-  let subject='', to='', dt='';
-  for(let i=0;i<lines.length;i++){
-    if(lines[i]==='제목' && lines[i+1]) subject = lines[i+1];
-    if(lines[i]==='받는사람' && lines[i+1]) to = lines[i+1];
-    if(lines[i]==='일시' && lines[i+1]) dt = lines[i+1];
-  }
-  const date = normalizeDate(dt);
-  if(!subject) return null;
-  return { date, subject, to, raw: dt, source: filename };
-}
+const EMBEDDED_SCHEDULE_TASKS = [];
+const EMBEDDED_PROJECT_DEADLINE_TASKS = [];
+const EMBEDDED_ASSET_DEADLINE_TASKS = [];
+const EMBEDDED_PROJECT_OVERVIEW = [];
+const EMBEDDED_ASSET_OVERVIEW = [];
+const EMBEDDED_CONTACTS = [];
 
 /* ---------------- 일정표 생성 ---------------- */
 
@@ -475,23 +283,11 @@ function buildSchedule(){
   const timedEvents = [];
   const mailRefs = [];
 
-  // (1) AI가 분석한 문서 데이터
+  // AI가 분석한 문서 데이터
   AI_TIMED_EVENTS.forEach(ev => timedEvents.push({ date:ev.date, start:ev.start, end:ev.end, allDay:false, title:ev.title, detail:ev.detail, source:ev.source }));
   AI_ALLDAY_TASKS.forEach(t => scheduleTasks.push({ date:t.date, title:t.title, priority:t.priority||'중', nextAction:t.detail||'', note:'', source:t.source }));
   AI_MAIL_REFS.forEach(m => mailRefs.push({ date:m.date, subject:m.subject, to:m.to, raw:[m.date, m.time].filter(Boolean).join(' '), summary:m.summary||'', source:m.source }));
 
-  // (2) 이 화면에서 직접 올린 문서 (AI 미사용 시)
-  files.calendar.filter(f=>f.status==='ok').forEach(f => {
-    parseCalendarDocx(f.raw).forEach(ev => {
-      if(ev.allDay){
-        scheduleTasks.push({ date:ev.date, title:ev.title, priority:'상', nextAction: ev.detail, note:'', source: ev.source });
-      } else {
-        timedEvents.push(ev);
-      }
-    });
-  });
-  files.meeting.filter(f=>f.status==='ok').forEach(f => { const ev = parseMeetingDocx(f.raw, f.name); if(ev) timedEvents.push(ev); });
-  files.email.filter(f=>f.status==='ok').forEach(f => { const m = parseEmailDocx(f.raw, f.name); if(m) mailRefs.push(m); });
 
   if(scheduleTasks.length===0 && timedEvents.length===0){
     return null;
@@ -669,7 +465,7 @@ function generate(){
   clearError();
   const result = buildSchedule();
   if(!result){
-    showError('일정표를 만들지 못했습니다. 업무자료나 문서를 먼저 올려주세요.');
+    showError('일정표에 넣을 내용이 없어요. 📂 Excel 업무자료 탭이나 위 문서 칸에서 자료를 먼저 올려주세요.');
     return;
   }
   originalWeeks = result.weeks;
@@ -787,10 +583,9 @@ el('resetBtn').addEventListener('click', ()=>{
   renderWeek(currentWeekKey);
 });
 
-el('genBtn').addEventListener('click', generate);
 
-// AI 문서가 들어와 있으면 바로 일정표를 보여준다
-if(AI_DOC_MODE){ generate(); }
+// 화면이 열리면 바로 일정표를 보여준다
+generate();
 </script>
 </body>
 </html>
@@ -1784,10 +1579,8 @@ def _js_json(value):
 
 
 def _replace_js_array(html, constant_name, value):
-    """HTML 안의 const NAME = [ ... ]; 배열을 교체. value가 None이면 데모 데이터 유지."""
-    if value is None:
-        return html
-    replacement = f"const {constant_name} = {_js_json(value)};"
+    """HTML 안의 const NAME = [ ... ]; 배열을 업로드 자료로 교체 (자료가 없으면 빈 배열)."""
+    replacement = f"const {constant_name} = {_js_json(value or [])};"
     pattern = rf"const\s+{re.escape(constant_name)}\s*=\s*\[.*?\];"
     updated, count = re.subn(pattern, lambda m: replacement, html, count=1, flags=re.DOTALL)
     if count != 1:
@@ -1827,13 +1620,6 @@ def build_onboarding_schedule_html(schedule_df, project_df, contact_df, asset_df
         html = _replace_js_const(html, "AI_ALLDAY_TASKS", ai_items.get("all_day_items", []))
         html = _replace_js_const(html, "AI_MAIL_REFS", ai_items.get("mails", []))
 
-    uploaded_count = sum(df is not None for df in [schedule_df, project_df, contact_df, asset_df])
-    if uploaded_count:
-        html = html.replace(
-            "업무일정·프로젝트 현황·자산·연락망 내용은 도구 안에 이미 반영되어 있어서 따로 업로드하지 않아도 됩니다.",
-            f"📂 Excel 업무자료 탭에서 올린 자료 {uploaded_count}/4종이 자동으로 연동되어 있습니다.",
-            1,
-        )
     return html
 
 
@@ -2317,7 +2103,7 @@ with tab_onboarding_schedule:
     if connected_count:
         st.success(f"🔗 **Excel 업무자료 {connected_count}/4종 연동 중** · 같은 자료를 다시 올릴 필요가 없습니다.")
     else:
-        st.info("아직 📂 Excel 업무자료를 올리지 않아 데모 데이터로 일정표를 만듭니다.")
+        st.info("아직 📂 Excel 업무자료를 올리지 않았어요. 업무자료나 문서를 올리면 일과표에 반영돼요.")
 
     st.markdown("#### 📎 회의록 · 캘린더 · 메일 문서")
     st.file_uploader(
@@ -2355,12 +2141,12 @@ with tab_onboarding_schedule:
                         st.markdown("**메일**")
                         st.dataframe(pd.DataFrame(ai_items["mails"]), use_container_width=True, hide_index=True)
             elif st.session_state.get(f"_ai_failed_schedule_{docs_hash}"):
-                st.warning("AI 문서 분석에 실패했어요. 아래 일정표 왼쪽의 업로드 칸을 이용하면 기존 방식으로 만들 수 있어요.")
+                st.warning("AI 문서 분석에 실패했어요. 지금은 업무자료만으로 일과표를 만들었어요. 다시 시도해보세요.")
                 if st.button("🔄 AI 분석 다시 시도", key="retry_schedule_ai"):
                     st.session_state.pop(f"_ai_failed_schedule_{docs_hash}", None)
                     st.rerun()
         else:
-            st.info("AI가 연결되지 않아 문서 분석을 할 수 없어요. 아래 일정표 왼쪽의 업로드 칸에 docx를 올리면 기존 방식으로 만들 수 있어요.")
+            st.info("AI가 연결되지 않아 문서 분석을 할 수 없어요. 지금은 업무자료만으로 일과표를 만들었어요.")
 
     try:
         onboarding_html = build_onboarding_schedule_html(schedule_df, project_df, contact_df, asset_df, ai_items=ai_items)
